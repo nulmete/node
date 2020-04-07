@@ -7,6 +7,11 @@ const app = express();
 const adminData = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 
+// set values globally on express application
+app.set('view engine', 'pug');
+// no need to do this, because ./views is the default value
+app.set('views', 'views');
+
 // parse body before every other middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 
