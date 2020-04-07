@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-const adminRoutes = require('./routes/admin');
+const adminData = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 
 // parse body before every other middleware
@@ -15,7 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // prefix '/admin' to adminRoutes
-app.use('/admin', adminRoutes);
+app.use('/admin', adminData.routes);
 
 app.use(shopRoutes);
 
