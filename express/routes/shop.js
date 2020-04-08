@@ -11,11 +11,14 @@ router.get('/', (req, res, next) => {
     // shared between users (even after reloading the page, it stays on node server)
     console.log('shop.js: ', adminData.products);
 
+    const products = adminData.products;
+
     // __dirname: absolute path to this folder
     // res.sendFile(path.join(rootDir, 'views', 'shop.html'));
 
     // render pug instead of html
-    res.render('shop');
+    // pass data to pug template as an object
+    res.render('shop', { prods: products, docTitle: 'Shop' });
 });
 
 module.exports = router;
