@@ -18,7 +18,7 @@ router.get('/', (req, res, next) => {
 
     // render pug instead of html
     // pass data to pug template as an object
-    res.render('shop', { prods: products, docTitle: 'Shop' });
+    res.render('shop', { prods: products, pageTitle: 'Shop', path: '/' });
 });
 
 module.exports = router;

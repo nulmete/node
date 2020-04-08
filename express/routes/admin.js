@@ -9,7 +9,8 @@ const products = [];
 // GET /admin/add-product
 router.get('/add-product', (req, res, next) => {
     // res.sendFile(path.join(rootDir, 'views', 'add-product.html'));
-    res.render('add-product', { pageTitle: 'Add Product' });
+    // pass hardcoded path to pug template to know which nav link is active
+    res.render('add-product', { pageTitle: 'Add Product', path: '/admin/add-product' });
 });
 
 // POST /admin/add-product
