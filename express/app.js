@@ -8,7 +8,8 @@ const adminData = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 
 // set values globally on express application
-app.set('view engine', 'pug');
+// app.set('view engine', 'pug');
+app.set('view engine', 'ejs');
 // no need to do this, because ./views is the default value
 app.set('views', 'views');
 
@@ -27,7 +28,7 @@ app.use(shopRoutes);
 // handle 404
 app.use((req, res, next) => {
     // res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
-    res.status(404).render('404', { pageTitle: 'Page not found' });
+    res.status(404).render('404', { pageTitle: 'Page not found', path: '/404' });
 });
 
 app.listen(3000);
