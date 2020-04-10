@@ -15,10 +15,21 @@ exports.postAddProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-    const products = Product.fetchAll();
-    res.render('shop', {
-        prods: products,
-        pageTitle: 'Shop',
-        path: '/'
+    // const products = Product.fetchAll();
+    // res.render('shop', {
+    //     prods: products,
+    //     pageTitle: 'Shop',
+    //     path: '/'
+    // });
+
+    // once 'fetchAll' is done executing, call the 'callback' function
+    // that is inside 'models/product'
+    // this is to prevent getting 'undefined' from the model using return
+    Product.fetchAll(products => {
+        res.render('shop', {
+            prods: products,
+            pageTitle: 'Shop',
+            path: '/'
+        });
     });
 };
