@@ -9,14 +9,24 @@ const getProductsFromFile = (cb) => {
         if (err) { // no products in products.json
             cb([]);
         } else {
-            cb(JSON.parse(fileContent));
+            // add try-catch block to prevent JSON.parse error
+            // when reading from an empty file
+            try {
+                cb(JSON.parse(fileContent));
+            } catch (err) {
+                return cb([]);
+            }
+            
         }
     });
 }
 
 module.exports = class Product {
-    constructor(title) {
+    constructor(title, imageUrl, description, price) {
         this.title = title;
+        this.imageUrl = imageUrl;
+        this.description = description;
+        this.price = price;
     }
 
     save() {
