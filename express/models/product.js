@@ -2,21 +2,25 @@ const fs = require('fs');
 const path = require('path');
 const rootDir = require('../util/path');
 
+const p = path.join(rootDir, 'data', 'products.json');
+
+const getProductsFromFile = (cb) => {
+    fs.readFile(p, (err, fileContent) => {
+        if (err) { // no products in products.json
+            cb([]);
+        } else {
+            cb(JSON.parse(fileContent));
+        }
+    });
+}
+
 module.exports = class Product {
     constructor(title) {
         this.title = title;
     }
 
     save() {
-        const p = path.join(rootDir, 'data', 'products.json');
-
-        fs.readFile(p, (err, fileContent) => {
-            let products = [];
-
-            if (!err) { // there are products stored
-                products = JSON.parse(fileContent);
-            }
-
+        getProductsFromFile(products => {
             products.push(this);
             fs.writeFile(p, JSON.stringify(products), (err) => {
                 console.log(err);
@@ -33,16 +37,6 @@ module.exports = class Product {
         // therefore, we never return anything and we get products = undefined
         // in controllers/products.js
         // SOLUTION: once fetchAll is done executing, the 'callback' fn is called
-        const p = path.join(rootDir, 'data', 'products.json');
-
-        fs.readFile(p, (err, fileContent) => {
-            if (err) { // no products in products.json
-                // return [];
-                callback([]);
-            }
-
-            // return JSON.parse(fileContent);
-            callback(JSON.parse(fileContent));
-        });
+        getProductsFromFile(callback);
     }
 }
