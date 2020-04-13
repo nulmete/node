@@ -33,12 +33,31 @@ exports.getProducts = (req, res, next) => {
 
 exports.getProduct = (req, res, next) => {
     const prodId = req.params.productId;
-    Product.findById(prodId)
-        .then(([product]) => {
+
+    // Returns an array
+    // Product.findAll({
+    //     where: {
+    //         id: prodId
+    //     }
+    // })
+    //     .then(products => {
+    //         res.render('shop/product-detail', {
+    //             product: products[0],
+    //             pageTitle: products[0].title,
+    //             path: '/products',
+    //         });
+    //     })
+    //     .catch(err => {
+    //         console.log(err);
+    //     });
+
+    // Returns an object
+    Product.findByPk(prodId)
+        .then(product => {
             res.render('shop/product-detail', {
                 pageTitle: product.title,
                 path: '/products',
-                product: product[0]
+                product: product
             });
         })
         .catch(err => {
