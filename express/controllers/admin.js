@@ -14,12 +14,15 @@ exports.postAddProduct = (req, res, next) => {
     const description = req.body.description;
     const price = req.body.price;
 
-    Product
-        .create({
+    // method available because of the User-Product relation
+    // adds the userId automatically without specifying it inside the object
+    req.user
+        .createProduct({
             title,
             price,
             imageUrl,
-            description
+            description,
+            // userId: req.user.id
         })
         .then(result => {
             console.log('CREATED PRODUCT');
@@ -38,9 +41,15 @@ exports.getEditProduct = (req, res, next) => {
 
     const prodId = req.params.productId;
 
-    Product
-        .findByPk(prodId)
-        .then(product => {
+    // method available because of the User-Product relation
+    // edit product (with specific ID) that belongs to an user
+    req.user
+        .getProducts({ // returns an array of products
+            where: { id: prodId }
+        })
+        .then(products => {
+            const product = products[0];
+
             if (!product) {
                 return res.redirect('/');
             }
@@ -65,6 +74,9 @@ exports.postEditProduct = (req, res, next) => {
     const updatedDescription = req.body.description;
     const updatedPrice = req.body.price;
 
+    // there's no need to change this method to a Sequelize method,
+    // because, at this point, we already know that this product
+    // belongs to a specific user who has previously edited the product
     Product
         .findByPk(prodId)
         .then(product => {
@@ -85,6 +97,10 @@ exports.postEditProduct = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
     const prodId = req.body.productId;
+
+    // there's no need to change this method to a Sequelize method,
+    // because, at this point, we already know that this product
+    // belongs to a specific user who has previously seen all of his/her products
     Product
         .findByPk(prodId)
         .then(product => {
@@ -100,8 +116,10 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-    Product
-        .findAll()
+    // method available because of the User-Product relation
+    // get all products that belong to an user
+    req.user
+        .getProducts()
         .then(products => {
             res.render('admin/products', {
                 prods: products,
