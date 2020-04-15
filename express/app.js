@@ -10,6 +10,8 @@ const Product = require('./models/product');
 const User = require('./models/user');
 const Cart = require('./models/cart');
 const CartItem = require('./models/cart-item');
+const Order = require('./models/order');
+const OrderItem = require('./models/order-item');
 
 const app = express();
 
@@ -56,6 +58,16 @@ User.hasOne(Cart);
 // So, we connect them through CartItem
 Cart.belongsToMany(Product, { through: CartItem }); // one Cart can hold many Products
 Product.belongsToMany(Cart, { through: CartItem }); // a Product can be in different Carts
+
+// ORDER-USER RELATIONS: adds userId to orders table
+Order.belongsTo(User);
+User.hasMany(Order);
+
+// ORDER-PRODUCT RELATIONS
+// Since it is Many-to-Many, we need a new table that holds productId and cartId
+// So, we connect them through OrderItem
+Order.belongsToMany(Product, { through: OrderItem }); // one Order can hold many Products
+Product.belongsToMany(Order, { through: OrderItem }); // a Product can be in different Orders
 
 
 // Create tables for defined models

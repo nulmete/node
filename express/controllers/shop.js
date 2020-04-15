@@ -1,5 +1,4 @@
 const Product = require('../models/product');
-const Cart = require('../models/cart');
 
 exports.getIndex = (req, res, next) => {
     Product.findAll()
@@ -155,16 +154,61 @@ exports.postCartDeleteProduct = (req, res, next) => {
         });
 };
 
-exports.getOrders = (req, res, next) => {
-    res.render('shop/orders', {
-        path: '/orders',
-        pageTitle: 'Your Orders'
-    });
+exports.postOrder = (req, res, next) => {
+    let fetchedCart;
+
+    req.user
+        .getCart()
+        .then(cart => {
+            fetchedCart = cart;
+            return cart.getProducts();
+        })
+        .then(products => {
+            return req.user
+                .createOrder()
+                .then(order => {
+                    return order.addProducts(products.map(product => {
+                        // cannot do through: { quantity: product.quantity } bcz
+                        // Product doesn't have a quantity then, retrieve quantity from cartItem table
+                        product.orderItem = { quantity: product.cartItem.quantity };
+                        return product;
+                    }))
+                })
+                .catch(err => {
+                    console.log(err);
+                });
+        })
+        .then(result => {
+            // clear the cart items
+            return fetchedCart.setProducts(null);
+        })
+        .then(result => {
+            res.redirect('/orders');
+        })
+        .catch(err => {
+            console.log(err);
+        });
 };
 
-exports.getCheckout = (req, res, next) => {
-    res.render('shop/checkout', {
-        path: '/checkout',
-        pageTitle: 'Checkout'
-    })
+exports.getOrders = (req, res, next) => {
+    // watch the difference between getCart and this function!!!
+    // we cannot nest .getProducts() because we want to render the orders, not the products
+    // therefore, we do not have acces to a 'order.orderItem' property in our view
+    // and we have to pass an object as an argument in order to fetch all the products
+    req.user
+        // 'products' = pluralization of the definition of 'product' in the Product model
+        // EAGER LOADING
+        // now, each order will have a 'products' array included
+        // also, a every 'product' will have the 'product.orderItem' property
+        .getOrders({ include: ['products'] })
+        .then(orders => {
+            res.render('shop/orders', {
+                path: '/orders',
+                pageTitle: 'Your Orders',
+                orders
+            });
+        })
+        .catch(err => {
+            console.log(err);
+        });
 };
