@@ -2,10 +2,10 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 
-// const adminRoutes = require('./routes/admin');
-// const shopRoutes = require('./routes/shop');
-// const errorController = require('./controllers/error');
-const mongoConnect = require('./util/database');
+const adminRoutes = require('./routes/admin');
+const shopRoutes = require('./routes/shop');
+const errorController = require('./controllers/error');
+const mongoConnect = require('./util/database').mongoConnect;
 
 const app = express();
 
@@ -32,11 +32,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 // });
 
 // prefix '/admin' to adminRoutes
-// app.use('/admin', adminRoutes);
-// app.use(shopRoutes);
-// app.use(errorController.get404);
+app.use('/admin', adminRoutes);
+app.use(shopRoutes);
+app.use(errorController.get404);
 
-mongoConnect(client => {
-    console.log(client);
+mongoConnect(() => {
     app.listen(3000);
 });
