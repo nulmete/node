@@ -2,7 +2,7 @@ const mongodb = require('mongodb');
 const getDb = require('../util/database').getDb;
 
 class Product {
-    constructor(title, price, description, imageUrl, id) {
+    constructor(title, price, description, imageUrl, id, userId) {
         this.title = title;
         this.price = price;
         this.description = description;
@@ -11,6 +11,9 @@ class Product {
         // if id is passed as argument, create mongodb objectId
         // if not, leave it as null
         this._id = id ? new mongodb.ObjectId(id) : null;
+
+        // we don't necessarily need all user info, just the id as in an SQL relation
+        this.userId = userId;
     }
 
     save() {

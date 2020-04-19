@@ -6,6 +6,7 @@ const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const errorController = require('./controllers/error');
 const mongoConnect = require('./util/database').mongoConnect;
+const User = require('./models/user');
 
 const app = express();
 
@@ -18,18 +19,18 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // note: in those html files, we have to assume that we're already in the public dir
 app.use(express.static(path.join(__dirname, 'public')));
 
-// app.use((req, res, next) => {
-//     User
-//         .findByPk(1)
-//         .then(user => { // user = Sequelize object
-//             // add user field to req object (IT WILL BE AVAILABLE IN EVERY REQUEST)
-//             req.user = user;
-//             next();
-//         })
-//         .catch(err => {
-//             console.log(err);
-//         });
-// });
+app.use((req, res, next) => {
+    User
+        .findById("5e9c569aa92b902340872dea")
+        .then(user => {
+            // add user field to req object (IT WILL BE AVAILABLE IN EVERY REQUEST)
+            req.user = new User(user.name, user.email, user.cart, user._id);
+            next();
+        })
+        .catch(err => {
+            console.log(err);
+        });
+});
 
 // prefix '/admin' to adminRoutes
 app.use('/admin', adminRoutes);
