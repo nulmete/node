@@ -28,39 +28,21 @@ exports.getProducts = (req, res, next) => {
         });
 };
 
-// exports.getProduct = (req, res, next) => {
-//     const prodId = req.params.productId;
+exports.getProduct = (req, res, next) => {
+    const prodId = req.params.productId;
 
-//     // Returns an array
-//     // Product.findAll({
-//     //     where: {
-//     //         id: prodId
-//     //     }
-//     // })
-//     //     .then(products => {
-//     //         res.render('shop/product-detail', {
-//     //             product: products[0],
-//     //             pageTitle: products[0].title,
-//     //             path: '/products',
-//     //         });
-//     //     })
-//     //     .catch(err => {
-//     //         console.log(err);
-//     //     });
-
-//     // Returns an object
-//     Product.findByPk(prodId)
-//         .then(product => {
-//             res.render('shop/product-detail', {
-//                 pageTitle: product.title,
-//                 path: '/products',
-//                 product: product
-//             });
-//         })
-//         .catch(err => {
-//             console.log(err);
-//         });
-// };
+    Product.findById(prodId)
+        .then(product => {
+            res.render('shop/product-detail', {
+                pageTitle: product.title,
+                path: '/products',
+                product: product
+            });
+        })
+        .catch(err => {
+            console.log(err);
+        });
+};
 
 
 // exports.getCart = (req, res, next) => {
