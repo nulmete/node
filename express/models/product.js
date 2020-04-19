@@ -1,5 +1,6 @@
 const mongodb = require('mongodb');
 const getDb = require('../util/database').getDb;
+const User = require('./user');
 
 class Product {
     constructor(title, price, description, imageUrl, id, userId) {
@@ -70,12 +71,22 @@ class Product {
             });
     }
 
-    static deleteById(prodId) {
+    static deleteById(prodId, user) {
         const db = getDb();
         return db.collection('products')
             .deleteOne({ _id: new mongodb.ObjectId(prodId) })
             .then(result => {
-                console.log('deleted');
+                // also delete from cart if it's in the cart!
+                const updatedCartItems = user.cart.items.filter(item => {
+                    return item.productId.toString() !== prodId.toString();
+                });
+
+                return db
+                    .collection('users')
+                    .updateOne(
+                        { _id: new mongodb.ObjectId(user._id)},
+                        { $set: { cart: { items: updatedCartItems } } }
+                    );
             })
             .catch(err => {
                 console.log(err);
