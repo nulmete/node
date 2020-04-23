@@ -13,16 +13,24 @@ exports.postAddProduct = (req, res, next) => {
     const imageUrl = req.body.imageUrl;
     const description = req.body.description;
     const price = req.body.price;
-    const product = new Product(title, price, description, imageUrl, null, req.user._id);
+    
+    const product = new Product({
+        title: title,
+        price: price,
+        description: description,
+        imageUrl: imageUrl,
+        // same as req.user._id
+        userId: req.user
+    });
 
     product
         .save()
-        .then(result => {
+        .then(() => {
             console.log('created product');
             res.redirect('/admin/products');
         })
         .catch(err => {
-            console.log(err)
+            console.log(err);
         });
 };
 
@@ -60,16 +68,15 @@ exports.postEditProduct = (req, res, next) => {
     const updatedDescription = req.body.description;
     const updatedPrice = req.body.price;
 
-    const product = new Product(
-        updatedTitle,
-        updatedPrice,
-        updatedDescription,
-        updatedImgUrl,
-        prodId
-    );
-
-    product
-        .save()
+    Product
+        .findById(prodId)
+        .then(product => {
+            product.title = updatedTitle;
+            product.price = updatedPrice;
+            product.description = updatedDescription;
+            product.imageUrl = updatedImgUrl;
+            return product.save();
+        })
         .then(result => {
             console.log('UPDATED PRODUCT');
             res.redirect('/admin/products');
@@ -82,8 +89,10 @@ exports.postEditProduct = (req, res, next) => {
 exports.postDeleteProduct = (req, res, next) => {
     const prodId = req.body.productId;
 
+    // Product
+    //     .deleteById(prodId, req.user)
     Product
-        .deleteById(prodId, req.user)
+        .findByIdAndRemove(prodId)
         .then(() => {
             res.redirect('/admin/products');
         })
@@ -93,8 +102,14 @@ exports.postDeleteProduct = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-    Product.fetchAll()
+    Product
+        .find()
+        // get title, price and exclude id (can also be done as 2nd argument of populate)
+        // .select('title price -_id')
+        // .populate('userId', 'title price -_id')
+        .populate('userId') // get all info from the user
         .then(products => {
+            console.log(products);
             res.render('admin/products', {
                 prods: products,
                 pageTitle: 'Admin Products',

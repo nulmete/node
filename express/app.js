@@ -1,11 +1,11 @@
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
 const errorController = require('./controllers/error');
-const mongoConnect = require('./util/database').mongoConnect;
 const User = require('./models/user');
 
 const app = express();
@@ -21,10 +21,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((req, res, next) => {
     User
-        .findById("5e9c569aa92b902340872dea")
+        .findById("5ea1ff30334e7326c484f63b")
         .then(user => {
             // add user field to req object (IT WILL BE AVAILABLE IN EVERY REQUEST)
-            req.user = new User(user.name, user.email, user.cart, user._id);
+            req.user = user;
             next();
         })
         .catch(err => {
@@ -37,6 +37,24 @@ app.use('/admin', adminRoutes);
 app.use(shopRoutes);
 app.use(errorController.get404);
 
-mongoConnect(() => {
-    app.listen(3000);
-});
+mongoose
+    .connect('mongodb+srv://nicolas:nicolas@cluster0-xf55q.mongodb.net/shop?retryWrites=true&w=majority')
+    .then(() => {
+        // get first user found
+        User.findOne().then(user => {
+            if (!user) {
+                const user = new User({
+                    name: 'Nico',
+                    email: 'nicoulmete1@gmail.com',
+                    cart: {
+                        items: []
+                    }
+                });
+                user.save();
+            }
+        });
+        app.listen(3000);
+    })
+    .catch(error => {
+        console.log(error);
+    });
