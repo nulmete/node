@@ -109,7 +109,6 @@ exports.getProducts = (req, res, next) => {
         // .populate('userId', 'title price -_id')
         .populate('userId') // get all info from the user
         .then(products => {
-            console.log(products);
             res.render('admin/products', {
                 prods: products,
                 pageTitle: 'Admin Products',
