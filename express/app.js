@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
+const csrf = require('csurf');
+const flash = require('connect-flash');
 
 const adminRoutes = require('./routes/admin');
 const shopRoutes = require('./routes/shop');
@@ -15,10 +17,13 @@ const User = require('./models/user');
 const MONGODB_URI = 'mongodb+srv://nicolas:nicolas@cluster0-xf55q.mongodb.net/shop';
 
 const app = express();
+
 const store = new MongoDBStore({
     uri: MONGODB_URI,
     collection: 'sessions'
 });
+
+const csrfProtection = csrf();
 
 app.set('view engine', 'ejs');
 
@@ -38,6 +43,9 @@ app.use(
     })
 );
 
+app.use(csrfProtection);
+app.use(flash());
+
 app.use((req, res, next) => {
     if (!req.session.user) {
         return next();
@@ -52,6 +60,13 @@ app.use((req, res, next) => {
         .catch(err => {
             console.log(err);
         });
+});
+
+app.use((req, res, next) => {
+    // set local variables and pass it to views
+    res.locals.isAuthenticated = req.session.isLoggedIn;
+    res.locals.csrfToken = req.csrfToken();
+    next();
 });
 
 // prefix '/admin' to adminRoutes
