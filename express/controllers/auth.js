@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
+// const nodemailer = require('nodemailer');
+const sendgrid = require('@sendgrid/mail');
 
 const User = require('../models/user');
+
 
 exports.getLogin = (req, res, next) => {
   let message = req.flash('error');
@@ -98,6 +101,20 @@ exports.postSignup = (req, res, next) => {
         }) 
         .then(() => {
           res.redirect('/login');
+
+          sendgrid.setApiKey('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');
+
+          const msg = {
+            to: email,
+            from: 'nicoulmete1@gmail.com',
+            subject: 'Testing Sendgrid E-mail',
+            text: 'XD',
+            html: '<h1>LOL</h1>',
+          };
+          return sendgrid.send(msg);
+        })
+        .catch(err => {
+          console.log(err);
         });
     })
     .catch(err => {
@@ -109,5 +126,21 @@ exports.postLogout = (req, res, next) => {
   req.session.destroy(err => {
     console.log(err);
     res.redirect('/');
+  });
+};
+
+exports.getReset = (req, res, next) => {
+  let message = req.flash('error');
+
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
+  
+  res.render('auth/reset', {
+    path: '/reset',
+    pageTitle: 'Reset Password',
+    errorMessage: message
   });
 };
