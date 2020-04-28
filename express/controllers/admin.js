@@ -71,15 +71,22 @@ exports.postEditProduct = (req, res, next) => {
     Product
         .findById(prodId)
         .then(product => {
+            console.log(product.userId, req.user._id);
+            // prevent users from editing another user's product
+            if (product.userId.toString() !== req.user._id.toString()) {
+                return res.redirect('/');
+            }
+
             product.title = updatedTitle;
             product.price = updatedPrice;
             product.description = updatedDescription;
             product.imageUrl = updatedImgUrl;
-            return product.save();
-        })
-        .then(result => {
-            console.log('UPDATED PRODUCT');
-            res.redirect('/admin/products');
+            return product
+                .save()
+                .then(result => {
+                    console.log('UPDATED PRODUCT');
+                    res.redirect('/admin/products');
+                });
         })
         .catch(err => {
             console.log(err);
@@ -89,10 +96,9 @@ exports.postEditProduct = (req, res, next) => {
 exports.postDeleteProduct = (req, res, next) => {
     const prodId = req.body.productId;
 
-    // Product
-    //     .deleteById(prodId, req.user)
     Product
-        .findByIdAndRemove(prodId)
+        // prevent users from deleting another user's product
+        .deleteOne({ _id: prodId, userId: req.user._id })
         .then(() => {
             res.redirect('/admin/products');
         })
@@ -103,11 +109,11 @@ exports.postDeleteProduct = (req, res, next) => {
 
 exports.getProducts = (req, res, next) => {
     Product
-        .find()
+        .find({ userId: req.user._id })
         // get title, price and exclude id (can also be done as 2nd argument of populate)
         // .select('title price -_id')
         // .populate('userId', 'title price -_id')
-        .populate('userId') // get all info from the user
+        // .populate('userId') // get all info from the user
         .then(products => {
             res.render('admin/products', {
                 prods: products,
