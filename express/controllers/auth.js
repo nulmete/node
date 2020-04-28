@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 // const nodemailer = require('nodemailer');
 const sendgrid = require('@sendgrid/mail');
+const config = require('../config');
 
 const User = require('../models/user');
 
@@ -102,7 +103,7 @@ exports.postSignup = (req, res, next) => {
         .then(() => {
           res.redirect('/login');
 
-          sendgrid.setApiKey('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');
+          sendgrid.setApiKey(config.SENDGRID_API_KEY);
 
           const msg = {
             to: email,
