@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const sendgrid = require('@sendgrid/mail');
+const { validationResult } = require('express-validator/check');
 const config = require('../config');
 
 const User = require('../models/user');
@@ -43,6 +44,17 @@ exports.postLogin = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
 
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    // render same page again
+    return res.status(422).render('auth/login', {
+      path: '/login',
+      pageTitle: 'Login',
+      errorMessage: errors.array()[0].msg
+    });
+  }
+
   User
     .findOne({ email: email })
     .then(user => {
@@ -71,52 +83,52 @@ exports.postLogin = (req, res, next) => {
         .catch(err => {
           console.log(err);
           res.redirect('/login');
-        });
-    })
-    .catch(err => console.log(err));
+        })
+    .catch(err => {
+      console.log(err);
+    });
+  });
 };
 
 exports.postSignup = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
-  const confirmPassword = req.body.confirmPassword;
 
-  User
-    .findOne({ email: email })
-    .then(userData => {
-      if (userData) {
-        // user exists
-        req.flash('error', 'E-mail already exists.');
-        return res.redirect('/signup');
-      }
+  // check if there are any errors from the check() middleware
+  const errors = validationResult(req);
 
-      return bcrypt
-        .hash(password, 12)
-        .then(hashedPassword => {
-          const user = new User({
-            email: email,
-            password: hashedPassword,
-            cart: { items: [] }
-          });
-    
-          return user.save();
-        }) 
-        .then(() => {
-          res.redirect('/login');
+  if (!errors.isEmpty()) {
+    // render same page again
+    return res.status(422).render('auth/signup', {
+      path: '/signup',
+      pageTitle: 'Signup',
+      errorMessage: errors.array()[0].msg
+    });
+  }
 
-          const msg = {
-            to: email,
-            from: 'nicoulmete1@gmail.com',
-            subject: 'Testing Sendgrid E-mail',
-            text: 'XD',
-            html: '<h1>LOL</h1>',
-          };
+  bcrypt
+    .hash(password, 12)
+    .then(hashedPassword => {
+      const user = new User({
+        email: email,
+        password: hashedPassword,
+        cart: { items: [] }
+      });
 
-          return sendgrid.send(msg);
-        })
-        .catch(err => {
-          console.log(err);
-        });
+      return user.save();
+    }) 
+    .then(() => {
+      res.redirect('/login');
+
+      const msg = {
+        to: email,
+        from: 'nicoulmete1@gmail.com',
+        subject: 'Testing Sendgrid E-mail',
+        text: 'XD',
+        html: '<h1>LOL</h1>',
+      };
+
+      return sendgrid.send(msg);
     })
     .catch(err => {
       console.log(err);
