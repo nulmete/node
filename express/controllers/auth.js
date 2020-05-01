@@ -9,34 +9,29 @@ const User = require('../models/user');
 sendgrid.setApiKey(config.SENDGRID_API_KEY);
 
 exports.getLogin = (req, res, next) => {
-  let message = req.flash('error');
-
-  if (message.length > 0) {
-    message = message[0];
-  } else {
-    message = null;
-  }
-
   res.render('auth/login', {
     path: '/login',
     pageTitle: 'Login',
-    errorMessage: message
+    errorMessage: '',
+    oldInput: {
+      email: '',
+      password: ''
+    },
+    validationErrors: []
   });
 };
 
 exports.getSignup = (req, res, next) => {
-  let message = req.flash('error');
-
-  if (message.length > 0) {
-    message = message[0];
-  } else {
-    message = null;
-  }
-
   res.render('auth/signup', {
     path: '/signup',
     pageTitle: 'Signup',
-    errorMessage: message
+    errorMessage: '',
+    oldInput: {
+      email: '',
+      password: '',
+      confirmPassword: ''
+    },
+    validationErrors: []
   });
 };
 
@@ -51,7 +46,12 @@ exports.postLogin = (req, res, next) => {
     return res.status(422).render('auth/login', {
       path: '/login',
       pageTitle: 'Login',
-      errorMessage: errors.array()[0].msg
+      errorMessage: errors.array()[0].msg,
+      oldInput: {
+        email,
+        password
+      },
+      validationErrors: errors.array()
     });
   }
 
@@ -59,8 +59,16 @@ exports.postLogin = (req, res, next) => {
     .findOne({ email: email })
     .then(user => {
       if (!user) { // email doesn't exist
-        req.flash('error', 'Invalid email or password.');
-        return res.redirect('/login');
+        return res.status(422).render('auth/login', {
+          path: '/login',
+          pageTitle: 'Login',
+          errorMessage: 'Invalid email or password.',
+          oldInput: {
+            email,
+            password
+          },
+          validationErrors: []
+        });
       }
 
       // email exists, validate pw
@@ -77,15 +85,25 @@ exports.postLogin = (req, res, next) => {
           }
 
           // invalid pw
-          req.flash('error', 'Invalid email or password.');
-          res.redirect('/login');
+          return res.status(422).render('auth/login', {
+            path: '/login',
+            pageTitle: 'Login',
+            errorMessage: 'Invalid email or password.',
+            oldInput: {
+              email,
+              password
+            },
+            validationErrors: []
+          });
         })
         .catch(err => {
           console.log(err);
           res.redirect('/login');
         })
     .catch(err => {
-      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
   });
 };
@@ -102,7 +120,13 @@ exports.postSignup = (req, res, next) => {
     return res.status(422).render('auth/signup', {
       path: '/signup',
       pageTitle: 'Signup',
-      errorMessage: errors.array()[0].msg
+      errorMessage: errors.array()[0].msg,
+      oldInput: {
+        email,
+        password,
+        confirmPassword: req.body.confirmPassword
+      },
+      validationErrors: errors.array()
     });
   }
 
@@ -131,8 +155,10 @@ exports.postSignup = (req, res, next) => {
       return sendgrid.send(msg);
     })
     .catch(err => {
-      console.log(err);
-    });
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+  });
 };
 
 exports.postLogout = (req, res, next) => {
@@ -197,12 +223,16 @@ exports.postReset = (req, res, next) => {
             sendgrid.send(msg);
           })
           .catch(err => {
-            console.log(err);
-          });
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            return next(error);
+        });
       })
       .catch(err => {
-        console.log(err);
-      });
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+    });
   });
 };
 
@@ -234,8 +264,10 @@ exports.getNewPassword = (req, res, next) => {
       });
     })
     .catch(err => {
-      console.log(err);
-    });
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+  });
 };
 
 exports.postNewPassword = (req, res, next) => {
@@ -264,6 +296,8 @@ exports.postNewPassword = (req, res, next) => {
       res.redirect('/login');
     })
     .catch(err => {
-      console.log(err);
-    });
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+  });
 };

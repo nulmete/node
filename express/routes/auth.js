@@ -18,13 +18,15 @@ router.post(
     [
         body('email')
             .isEmail()
-            .withMessage('Please enter a valid e-mail'),
+            .withMessage('Please enter a valid e-mail')
+            .normalizeEmail(),
         body(
             'password',
             'Please enter a password with only numbers and text and at least 5 characters' 
         )
             .isLength({ min: 5 })
             .isAlphanumeric()
+            .trim()
     ], 
     authController.postLogin
 );
@@ -45,15 +47,18 @@ router.post(
                         // user exists, throw err inside of the promsie
                         return Promise.reject('E-mail already exists.');
                     }
-            });
-        }),
+                });
+            })
+            .normalizeEmail(),
         body(
             'password',
             'Please enter a password with only numbers and text and at least 5 characters'
         )
             .isLength({ min: 5 })
-            .isAlphanumeric(),
+            .isAlphanumeric()
+            .trim(),
         body('confirmPassword')
+            .trim()
             .custom((value, { req }) => {
                 if (value !== req.body.password) {
                     throw new Error('Passwords must match!');
