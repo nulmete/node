@@ -1,6 +1,7 @@
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
+const multer = require('multer');
 const mongoose = require('mongoose');
 const config = require('./config');
 const session = require('express-session');
@@ -26,14 +27,40 @@ const store = new MongoDBStore({
 
 const csrfProtection = csrf();
 
+const fileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        // null: no error; save in 'images' folder
+        cb(null, 'images');
+    },
+    filename: (req, file, cb) => {
+        cb(null, new Date().getTime() + '-' + file.originalname);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    if (
+        file.mimetype === 'image/png' || 
+        file.mimetype === 'image/jpg' || 
+        file.mimetype === 'image/jpeg'
+    ) {
+        // accept file
+        cb(null, true);
+    } else {
+        cb(null, false);
+    }
+};
+
 app.set('view engine', 'ejs');
 
 // parse body before every other middleware
 app.use(bodyParser.urlencoded({ extended: true }));
+// parse file in edit-product.ejs
+app.use(multer({ storage: fileStorage, fileFilter }).single('image'));
 
 // allows to include css files as <link> in html files
-// note: in those html files, we have to assume that we're already in the public dir
+// note: in those html files, we have to assume that we're in the root folder
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 app.use(
     session({
@@ -89,6 +116,7 @@ app.use(authRoutes);
 app.use(errorController.get404);
 
 app.use((error, req, res, next) => {
+    console.log('error: ', error);
     // res.status(error.httpStatusCode).render(...);
     // res.redirect('/500');
     res.status(500).render('500', {
