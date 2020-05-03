@@ -5,15 +5,33 @@ const PDFDocument = require('pdfkit');
 const Product = require('../models/product');
 const Order = require('../models/order');
 
+const ITEMS_PER_PAGE = 1;
+
 exports.getIndex = (req, res, next) => {
-    // find doesn't return a cursos like in normal mongodb
-    // we have to add .cursor() to do that
-    Product.find()
+    const page = +req.query.page || 1;
+    let totalItems;
+
+    Product
+        .find()
+        .countDocuments()
+        .then(numProducts => {
+            totalItems = numProducts;
+
+            return Product.find() // returns a cursor
+                .skip((page - 1) * ITEMS_PER_PAGE) // page 2: (2 - 1) * 2 = 2 (skip first 2 items)
+                .limit(ITEMS_PER_PAGE) // get only 2 items
+        })
         .then(products => {
             res.render('shop/index', {
                 prods: products,
                 pageTitle: 'Shop',
-                path: '/'
+                path: '/',
+                currentPage: page,
+                hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+                hasPreviousPage: page > 1,
+                nextPage: page + 1,
+                previousPage: page - 1,
+                lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE)
             });
         })
         .catch(err => {
@@ -24,12 +42,30 @@ exports.getIndex = (req, res, next) => {
 };
 
 exports.getProducts = (req, res, next) => {
-    Product.find()
+    const page = +req.query.page || 1;
+    let totalItems;
+
+    Product
+        .find()
+        .countDocuments()
+        .then(numProducts => {
+            totalItems = numProducts;
+
+            return Product.find() // returns a cursor
+                .skip((page - 1) * ITEMS_PER_PAGE) // page 2: (2 - 1) * 2 = 2 (skip first 2 items)
+                .limit(ITEMS_PER_PAGE) // get only 2 items
+        })
         .then(products => {
             res.render('shop/product-list', {
                 prods: products,
                 pageTitle: 'All Products',
-                path: '/products'
+                path: '/products',
+                currentPage: page,
+                hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+                hasPreviousPage: page > 1,
+                nextPage: page + 1,
+                previousPage: page - 1,
+                lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE)
             });
         })
         .catch(err => {
