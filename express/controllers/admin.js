@@ -1,6 +1,8 @@
-const { validationResult } = require('express-validator');
-const Product = require('../models/product');
+const fileHelper = require('../util/file');
 const mongoose = require('mongoose');
+const { validationResult } = require('express-validator');
+
+const Product = require('../models/product');
 
 exports.getAddProduct = (req, res, next) => {
     res.render('admin/edit-product', {
@@ -149,7 +151,9 @@ exports.postEditProduct = (req, res, next) => {
             product.price = updatedPrice;
             product.description = updatedDescription;
             
+            // if I chose a new image to upload, update the imageUrl and remove old img
             if (image) {
+                fileHelper.deleteFile(product.imageUrl);
                 product.imageUrl = image.path;
             } 
 
@@ -171,16 +175,24 @@ exports.postDeleteProduct = (req, res, next) => {
     const prodId = req.body.productId;
 
     Product
+    .findById(prodId)
+    .then(product => {
+        if (!product) {
+            return next(new Error('Product not found'));
+        }
+        fileHelper.deleteFile(product.imageUrl);
+
         // prevent users from deleting another user's product
-        .deleteOne({ _id: prodId, userId: req.user._id })
-        .then(() => {
-            res.redirect('/admin/products');
-        })
-        .catch(err => {
-            const error = new Error(err);
-            error.httpStatusCode = 500;
-            return next(error);
-        });
+        return Product.deleteOne({ _id: prodId, userId: req.user._id });
+    })
+    .then(() => {
+        res.redirect('/admin/products');
+    })
+    .catch(err => {
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
+    });
 };
 
 exports.getProducts = (req, res, next) => {
