@@ -2,6 +2,8 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
 
 const config = require('./config');
 
@@ -9,11 +11,38 @@ const feedRoutes = require('./routes/feed');
 
 const app = express();
 
+// configure multer file storage
+const fileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'images');
+    },
+    filename: (req, file, cb) => {
+        cb(null, uuidv4());
+    }
+});
+
+// configure multer file filter (which formats are accepted)
+const fileFilter = (req, file, cb) => {
+    if (
+        file.mimetype === 'image/png' ||
+        file.mimetype === 'image/jpg' ||
+        file.mimetype === 'image/jpeg'
+    ) {
+        cb(null, true);
+    } else {
+        cb(null, false);
+    }
+};
+
 // x-www-form-urlencoded => data submitted through <form>
 // app.use(bodyParser.urlencoded()); 
 
 // parse JSON data from incoming requests (application/json)
 app.use(bodyParser.json()); 
+
+// register multer with fileStorage and fileFilter configuration
+// 'image' is the field we expect to receive from the request
+app.use(multer({storage: fileStorage, fileFilter: fileFilter }).single('image'));
 
 // serve images statically
 app.use('/images', express.static(path.join(__dirname, 'images')));
