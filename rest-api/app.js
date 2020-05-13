@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const config = require('./config');
 
 const feedRoutes = require('./routes/feed');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/feed', feedRoutes);
+app.use('/auth', authRoutes);
 
 // express error-handling middleware
 // executed every time an error is thrown or forwarded with next(err)
@@ -67,9 +69,11 @@ app.use((error, req, res, next) => {
     console.log(error);
     // if statusCode is undefined, set 500 by default
     const statusCode = error.statusCode || 500;
-    const message = error.message;
     // message is always set as default
-    res.status(statusCode).json({ message });
+    const message = error.message;
+    // custom property
+    const data = error.data;
+    res.status(statusCode).json({ message, data });
 });
 
 // connect to mongoose and then start server

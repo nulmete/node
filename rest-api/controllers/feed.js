@@ -6,12 +6,33 @@ const { validationResult } = require('express-validator');
 const Post = require('../models/post');
 
 exports.getPosts = (req, res, next) => {
+    // get current page from frontend (loadPosts)
+    // if it's undefined, always start at page 1
+    const currentPage = req.query.page || 1;
+    // same value as in the frontend
+    // would be better to pass this to the frontend
+    const perPage = 2;
+    let totalItems;
+
     Post
         .find()
+        .countDocuments()
+        .then(count => {
+            totalItems = count;
+            return Post
+                .find()
+                // page 1 => skip 0 items
+                // page 2 => skip 2 items
+                // page 3 => skip 4 items
+                .skip((currentPage - 1) * perPage)
+                // limit the amount of items retrieved to 2 items
+                .limit(perPage);
+        })
         .then(posts => {
             res.status(200).json({
                 message: 'Fetched posts successfully.',
-                posts
+                posts,
+                totalItems
             });
         })
         .catch(err => {
@@ -22,7 +43,9 @@ exports.getPosts = (req, res, next) => {
             // ASYNC CODE => throwing an error doesn't work here
             // (it doesn't look for the next error-handling middleware)
             next(err);
-        });
+        })
+
+    
 };
 
 exports.createPost = (req, res, next) => {
@@ -193,6 +216,7 @@ exports.deletePost = (req, res, next) => {
         .findById(postId)
         .then(post => {
             // check logged in user
+
             // no post was found
             if (!post) {
                 const error = new Error('Could not find post.');
