@@ -4,6 +4,8 @@ const path = require('path');
 const { validationResult } = require('express-validator');
 
 const Post = require('../models/post');
+const User = require('../models/user');
+
 
 exports.getPosts = (req, res, next) => {
     // get current page from frontend (loadPosts)
@@ -26,7 +28,10 @@ exports.getPosts = (req, res, next) => {
                 // page 3 => skip 4 items
                 .skip((currentPage - 1) * perPage)
                 // limit the amount of items retrieved to 2 items
-                .limit(perPage);
+                .limit(perPage)
+                // needed to show the author name on the frontend
+                // since it expects post.creator.name
+                .populate('creator');
         })
         .then(posts => {
             res.status(200).json({
@@ -73,6 +78,7 @@ exports.createPost = (req, res, next) => {
 
     const title = req.body.title;
     const content = req.body.content;
+    let creator;
 
     // create post
     // createdAt and _id are automatically created
@@ -80,20 +86,29 @@ exports.createPost = (req, res, next) => {
         title,
         content,
         imageUrl,
-        creator: {
-            name: 'Nicolas'
-        },
+        creator: req.userId
     });
 
     // save post to DB
     post
         .save()
         .then(result => {
-            console.log(result);
-
+            // add post to list of posts from the given user
+            return User.findById(req.userId)
+        })
+        .then(user => {
+            creator = user;
+            user.posts.push(post);
+            return user.save();
+        })
+        .then(result => {
             res.status(201).json({
                 message: 'Post created successfully!',
-                post: result
+                post,
+                creator: {
+                    _id: creator._id,
+                    name: creator.name
+                }
             });
         })
         .catch(err => {
@@ -112,6 +127,9 @@ exports.getPost = (req, res, next) => {
 
     Post
         .findById(postId)
+        // needed to show the author name on the frontend
+        // since it expects post.creator.name
+        .populate('creator')
         .then(post => {
             // no post was found
             if (!post) {
@@ -181,6 +199,13 @@ exports.updatePost = (req, res, next) => {
                 throw error;
             }
 
+            // check if post belongs to the currently logged in user
+            if (post.creator.toString() !== req.userId) {
+                const error = new Error('Not authorized.');
+                error.statusCode = 403;
+                throw error;
+            }
+
             // user uploaded a new image => clear old image from filesystem
             if (imageUrl !== post.imageUrl) {
                 clearImage(post.imageUrl);
@@ -198,7 +223,7 @@ exports.updatePost = (req, res, next) => {
                 post: result
             })
         })
-        .catch(error => {
+        .catch(err => {
             // server-side error
             if (!err.statusCode) {
                 err.statusCode = 500;
@@ -227,15 +252,86 @@ exports.deletePost = (req, res, next) => {
                 throw error;
             }
 
+            // check if post belongs to the currently logged in user
+            if (post.creator.toString() !== req.userId) {
+                const error = new Error('Not authorized.');
+                error.statusCode = 403;
+                throw error;
+            }
+
             clearImage(post.imageUrl);
 
             return Post.findByIdAndRemove(postId);
         })
         .then(result => {
-            console.log(result);
+            return User.findById(req.userId);
+        })
+        .then(user => {
+            // remove deleted post from user.posts
+            user.posts.pull(postId);
+            return user.save();
+        })
+        .then(result => {
             res.status(200).json({ message: 'Deleted post.' });
         })
-        .catch(error => {
+        .catch(err => {
+            // server-side error
+            if (!err.statusCode) {
+                err.statusCode = 500;
+            }
+            // ASYNC CODE => throwing an error doesn't work here
+            // (it doesn't look for the next error-handling middleware)
+            next(err);
+        });
+};
+
+exports.getStatus = (req, res, next) => {
+    User
+        .findById(req.userId)
+        .then(user => {
+            if (!user) {
+                const error = new Error('User not found.');
+                error.statusCode = 404;
+                throw error;
+            }
+            
+            res.status(200).json({
+                message: 'Retrieved status successfully!',
+                status: user.status
+            });
+        })
+        .catch(err => {
+            // server-side error
+            if (!err.statusCode) {
+                err.statusCode = 500;
+            }
+            // ASYNC CODE => throwing an error doesn't work here
+            // (it doesn't look for the next error-handling middleware)
+            next(err);
+        });
+};
+
+exports.updateStatus = (req, res, next) => {
+    const newStatus = req.body.status;
+
+    User
+        .findById(req.userId)
+        .then(user => {
+            if (!user) {
+                const error = new Error('User not found.');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            user.status = newStatus;
+            return user.save();
+        })
+        .then(() => {
+            res.status(200).json({
+                message: 'Updated status successfully!'
+            });
+        })
+        .catch(err => {
             // server-side error
             if (!err.statusCode) {
                 err.statusCode = 500;

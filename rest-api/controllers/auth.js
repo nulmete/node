@@ -1,5 +1,7 @@
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const config = require('../config');
 
 const User = require('../models/user');
 
@@ -44,4 +46,60 @@ exports.signup = (req, res, next) => {
             // (it doesn't look for the next error-handling middleware)
             next(err);
         });
+};
+
+exports.login = (req, res, next) => {
+    const email = req.body.email;
+    const password = req.body.password;
+    let loadedUser;
+
+    // email exists?
+    User
+        .findOne({ email })
+        .then(user => {
+            // user undefined?
+            if (!user) {
+                const error = new Error('User could not be found.');
+                error.statusCode = 401;
+                throw error;
+            }
+
+            // user was found
+            loadedUser = user;
+
+            // compare password with hashed password
+            return bcrypt.compare(password, user.password);
+        })
+        .then(isEqual => {
+            if (!isEqual) {
+                const error = new Error('Wrong password.')
+                error.statusCode = 401;
+                throw error;
+            }
+
+            // password matches, generate JWT
+            const token = jwt.sign(
+                {
+                    email: loadedUser.email,
+                    userId: loadedUser._id.toString()
+                },
+                // secret key
+                config.JWT_SECRET,
+                { expiresIn: '1h' }
+            );
+
+            res.status(200).json({
+                token: token,
+                userId: loadedUser._id.toString()
+            });
+        })
+        .catch(err => {
+            // server-side error
+            if (!err.statusCode) {
+                err.statusCode = 500;
+            }
+            // ASYNC CODE => throwing an error doesn't work here
+            // (it doesn't look for the next error-handling middleware)
+            next(err);
+        })
 };

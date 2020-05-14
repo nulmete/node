@@ -17,7 +17,9 @@ const postSchema = new Schema(
             required: true
         },
         creator: {
-            type: Object,
+            // reference to a User
+            type: Schema.Types.ObjectId,
+            ref: 'User',
             required: true
         }
     },
