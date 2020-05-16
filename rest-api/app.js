@@ -82,7 +82,15 @@ mongoose
         `mongodb+srv://${config.MONGODB_USER}:${config.MONGODB_PW}@cluster0-xf55q.mongodb.net/messages?retryWrites=true&w=majority`
     )
     .then(result => {
-        app.listen(8080);
+        const server = app.listen(8080);
+
+        // setup socket.io
+        const io = require('./socket').init(server);
+
+        // socket.io event listener when client connects
+        io.on('connection', socket => {
+            console.log('Client connected');
+        });
     })
     .catch(err => {
         console.log(err);

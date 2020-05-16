@@ -3,9 +3,9 @@ const path = require('path');
 
 const { validationResult } = require('express-validator');
 
+const io = require('../socket');
 const Post = require('../models/post');
 const User = require('../models/user');
-
 
 exports.getPosts = async (req, res, next) => {
     // get current page from frontend (loadPosts)
@@ -20,15 +20,17 @@ exports.getPosts = async (req, res, next) => {
         const totalItems = await Post.find().countDocuments();
 
         const posts = await Post.find()
+            // needed to show the author name on the frontend
+            // since it expects post.creator.name
+            .populate('creator')
+            // sort by createdAt in a descending way
+            .sort({ createdAt: -1 })
             // page 1 => skip 0 items
             // page 2 => skip 2 items
             // page 3 => skip 4 items
             .skip((currentPage - 1) * perPage)
             // limit the amount of items retrieved to 2 items
-            .limit(perPage)
-            // needed to show the author name on the frontend
-            // since it expects post.creator.name
-            .populate('creator');
+            .limit(perPage);
 
         res.status(200).json({
             message: 'Fetched posts successfully.',
@@ -85,8 +87,15 @@ exports.createPost = async (req, res, next) => {
     try {
         await post.save();
         const user = await User.findById(req.userId);
-        await user.posts.push(post);
+        user.posts.push(post);
         await user.save();
+
+        // inform all other users of the new post with socket.io
+        io.getIO().emit('posts', {
+            action: 'create',
+            // populate the post object with the creator name, instead of just the userId
+            post: { ...post._doc, creator: { _id: req.userId, name: user.name } }
+        });
 
         res.status(201).json({
             message: 'Post created successfully!',
@@ -164,7 +173,9 @@ exports.updatePost = async (req, res, next) => {
     }
 
     try {
-        const post = await Post.findById(postId)
+        // populate the post with the entire creator data, so that
+        // when a post is updated, socketIO can send the creator.name
+        const post = await Post.findById(postId).populate('creator');
 
         // no post was found
         if (!post) {
@@ -177,7 +188,7 @@ exports.updatePost = async (req, res, next) => {
         }
 
         // check if post belongs to the currently logged in user
-        if (post.creator.toString() !== req.userId) {
+        if (post.creator._id.toString() !== req.userId) {
             const error = new Error('Not authorized.');
             error.statusCode = 403;
             throw error;
@@ -194,6 +205,13 @@ exports.updatePost = async (req, res, next) => {
         post.content = content;
 
         const result = await post.save();
+
+        // inform all other users of the new post with socket.io
+        io.getIO().emit('posts', {
+            action: 'update',
+            // populate the post object with the creator name, instead of just the userId
+            post: result
+        });
 
         res.status(200).json({
             message: 'Post updated.',
@@ -240,6 +258,11 @@ exports.deletePost = async (req, res, next) => {
         // remove deleted post from user.posts
         await user.posts.pull(postId);
         await user.save();
+
+        io.getIO().emit('posts', {
+            action: 'delete',
+            post: postId
+        })
 
         res.status(200).json({ message: 'Deleted post.' });
     } catch (err) {
