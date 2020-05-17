@@ -8,6 +8,7 @@ const graphqlHttp = require('express-graphql');
 
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
+const auth = require('./middleware/auth');
 
 const config = require('./config');
 
@@ -66,6 +67,8 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use(auth);
+
 app.use('/graphql', graphqlHttp({
     schema: graphqlSchema,
     rootValue: graphqlResolver,
@@ -95,7 +98,7 @@ app.use((error, req, res, next) => {
     const message = error.message;
     // custom property
     const data = error.data;
-    res.status(statusCode).json({ message, data });
+    res.status(statusCode).json({ message, data, where: 'error-handling middleware' });
 });
 
 // connect to mongoose and then start server
