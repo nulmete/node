@@ -4,11 +4,12 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+const graphqlHttp = require('express-graphql');
+
+const graphqlSchema = require('./graphql/schema');
+const graphqlResolver = require('./graphql/resolvers');
 
 const config = require('./config');
-
-const feedRoutes = require('./routes/feed');
-const authRoutes = require('./routes/auth');
 
 const app = express();
 
@@ -57,11 +58,32 @@ app.use((req, res, next) => {
     // Specify which headers are allowed to the client
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
+    // graphql
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+
     next();
 });
 
-app.use('/feed', feedRoutes);
-app.use('/auth', authRoutes);
+app.use('/graphql', graphqlHttp({
+    schema: graphqlSchema,
+    rootValue: graphqlResolver,
+    graphiql: true,
+    formatError(err) {
+        // originalError: error thrown in code
+        // technical error is not an originalError (e.g. syntax error)
+        if (!err.originalError) {
+            // return normal error
+            return err;
+        }
+
+        const data = err.originalError.data;
+        const message = err.message || 'An error occurred.';
+        const statusCode = err.originalError.statusCode || 500;
+        return { message, status: statusCode, data };
+    }
+}));
 
 // express error-handling middleware
 // executed every time an error is thrown or forwarded with next(err)
@@ -82,15 +104,7 @@ mongoose
         `mongodb+srv://${config.MONGODB_USER}:${config.MONGODB_PW}@cluster0-xf55q.mongodb.net/messages?retryWrites=true&w=majority`
     )
     .then(result => {
-        const server = app.listen(8080);
-
-        // setup socket.io
-        const io = require('./socket').init(server);
-
-        // socket.io event listener when client connects
-        io.on('connection', socket => {
-            console.log('Client connected');
-        });
+        app.listen(8080);
     })
     .catch(err => {
         console.log(err);
