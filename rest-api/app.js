@@ -9,6 +9,7 @@ const graphqlHttp = require('express-graphql');
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
 const auth = require('./middleware/auth');
+const { clearImage } = require('./util/file');
 
 const config = require('./config');
 
@@ -69,11 +70,35 @@ app.use((req, res, next) => {
 
 app.use(auth);
 
+// custom REST request for image upload
+app.put('/post-image', (req, res, next) => {
+    // check if is auth
+    if (!req.isAuth) {
+        throw new Error('Not authenticated');
+    }
+    // no image sent
+    if (!req.file) {
+        return res.status(200).json({
+            message: 'No file provided!'
+        });
+    }
+    // new image sent
+    if (req.body.oldPath) {
+        clearImage(req.body.oldPath);
+    }
+    return res.status(201).json({
+        message: 'File stored.',
+        // path where multer stores the image
+        filePath: req.file.path.replace("\\", "/")
+    });
+});
+
 app.use('/graphql', graphqlHttp({
     schema: graphqlSchema,
     rootValue: graphqlResolver,
     graphiql: true,
     formatError(err) {
+        console.log(err);
         // originalError: error thrown in code
         // technical error is not an originalError (e.g. syntax error)
         if (!err.originalError) {
